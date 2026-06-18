@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import LiveClock from "./LiveClock";
+import SocialLinks from "./SocialLinks";
 import { site } from "@/lib/site";
 
 export default function Footer() {
   return (
     <footer className="border-t border-forest-800 bg-forest-950 text-forest-200">
-      <div className="container-x grid gap-12 py-20 md:grid-cols-[1.4fr_1fr_1fr]">
+      <div className="container-x grid gap-12 py-20 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div>
           <Logo light mark="#f7f9f5" size={52} />
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-forest-300">
@@ -46,6 +47,11 @@ export default function Footer() {
           >
             Book Your Stay
           </a>
+        </div>
+
+        <div>
+          <p className="eyebrow bracket-label">Socials</p>
+          <SocialLinks className="mt-5" />
         </div>
       </div>
 

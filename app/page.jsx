@@ -209,8 +209,8 @@ export default function Home() {
               { src: "/photos/signage.jpg", pos: "center" },
               { src: "/photos/sunset.jpg", pos: "center" },
               { src: "/photos/outdoors.jpg", pos: "center" },
-              { src: "/photos/fire.jpg", pos: "center", h: 125 },
-              { src: "/photos/ariel.jpg", pos: "center", h: 125 },
+              { src: "/photos/fire.jpg", pos: "center", h: 160 },
+              { src: "/photos/ariel.jpg", pos: "center", h: 160 },
             ]}
           />
         </div>

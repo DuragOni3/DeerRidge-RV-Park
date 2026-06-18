@@ -21,9 +21,13 @@ export default function HeroReveal({ image = "/photos/hero.png", children }) {
 
     const GREEN = "6,21,10"; // forest-950
     const HEAD = 170; // base radius of the spotlight head
-    const LIFE = 4000; // ms a trail point lasts (higher = slower return to green)
-    const TAPER = 1.6; // higher = sharper, more triangular tail
-    const EASE = 0.12; // how much the head lags the cursor (lower = more ripple)
+    const LIFE = 1100; // ms a trail point lasts (controls tail LENGTH; shorter = stubbier)
+    const TAIL_W = HEAD * 0.55; // half-width of the tail where it meets the circle
+    const EASE = 0.12; // how much the head lags the cursor
+    // ripple rings that emanate from the circle (separate from the tail)
+    const RIPPLE_INTERVAL = 450; // ms between new rings (higher = calmer)
+    const RIPPLE_LIFE = 1400; // ms each ring lasts (higher = slower)
+    const RIPPLE_SPREAD = 70; // px a ring grows over its life (smaller = tighter)
 
     let w = 0,
       h = 0;
@@ -60,6 +64,8 @@ export default function HeroReveal({ image = "/photos/hero.png", children }) {
     let speed = 0; // smoothed cursor speed (px/ms)
     let phase = 0; // wave phase that advances as the cursor moves
     let lastMoveT = 0;
+    const ripples = []; // { x, y, t } expanding rings emanating from the circle
+    let lastRipple = 0;
     let raf;
 
     // soft, feathered circular hole (used for the comet trail)
@@ -114,10 +120,15 @@ export default function HeroReveal({ image = "/photos/hero.png", children }) {
         const dist = Math.hypot(dx, dy);
         const steps = Math.min(40, Math.floor(dist / 9));
         for (let i = 1; i <= steps; i++) {
-          points.push({ x: last.x + (dx * i) / steps, y: last.y + (dy * i) / steps, t: now });
+          points.push({
+            x: last.x + (dx * i) / steps,
+            y: last.y + (dy * i) / steps,
+            t: now,
+            r: Math.random() * 6.283, // stable random phase for organic ripples
+          });
         }
       }
-      points.push({ x, y, t: now });
+      points.push({ x, y, t: now, r: Math.random() * 6.283 });
       last = { x, y };
       if (points.length > 600) points.splice(0, points.length - 600);
     };
@@ -149,17 +160,64 @@ export default function HeroReveal({ image = "/photos/hero.png", children }) {
       ctx.fillStyle = `rgb(${GREEN})`;
       ctx.fillRect(0, 0, w, h);
 
-      // 2) comet trail (newest big, oldest shrinks to a sharp point)
+      // 2) clean TRIANGULAR tail (currently DISABLED — flip `false` to `n >= 2`
+      //    to bring the tail back). Spotlight + ripples only for now.
       ctx.globalCompositeOperation = "destination-out";
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        const age = (now - p.t) / LIFE;
-        if (age >= 1) continue;
-        const f = 1 - age;
-        // per-point ripple makes the tail edge undulate; 0.8 keeps the trail a
-        // touch smaller than the head blob so the head's waves show at the front
-        const ripple = 1 + 0.16 * Math.sin(i * 0.8 + now * 0.006);
-        cut(p.x, p.y, HEAD * 0.8 * Math.pow(f, TAPER) * ripple, Math.pow(f, 0.8));
+      const n = points.length;
+      if (false && n >= 2) {
+        const left = [];
+        const right = [];
+        for (let i = 0; i < n; i++) {
+          const p = points[i];
+          const f = Math.max(0, 1 - (now - p.t) / LIFE); // 1 at head -> 0 at tail end
+          const halfW = TAIL_W * f; // linear taper -> straight triangle sides
+          const a = points[i > 0 ? i - 1 : 0];
+          const b = points[i < n - 1 ? i + 1 : n - 1];
+          const tx = b.x - a.x;
+          const ty = b.y - a.y;
+          const tl = Math.hypot(tx, ty) || 1;
+          const nx = -ty / tl;
+          const ny = tx / tl;
+          left.push(p.x + nx * halfW, p.y + ny * halfW);
+          right.push(p.x - nx * halfW, p.y - ny * halfW);
+        }
+        ctx.save();
+        ctx.filter = "blur(2px)";
+        ctx.beginPath();
+        ctx.moveTo(left[0], left[1]);
+        for (let i = 1; i < n; i++) ctx.lineTo(left[i * 2], left[i * 2 + 1]);
+        for (let i = n - 1; i >= 0; i--) ctx.lineTo(right[i * 2], right[i * 2 + 1]);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(0,0,0,1)";
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 2b) ripple rings that emanate from the circle (independent of the tail).
+      //     A new ring is born at the cursor every RIPPLE_INTERVAL, then it
+      //     expands outward and fades — revealing thin, growing rings of photo.
+      if (hasHead) {
+        if (now - lastRipple > RIPPLE_INTERVAL) {
+          ripples.push({ x: head.x, y: head.y, t: now });
+          lastRipple = now;
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.filter = "blur(5px)";
+        for (let i = 0; i < ripples.length; i++) {
+          const rp = ripples[i];
+          const age = (now - rp.t) / RIPPLE_LIFE;
+          if (age >= 1) continue;
+          const radius = HEAD * 0.5 + age * RIPPLE_SPREAD;
+          const alpha = (1 - age) * 0.4; // subtle, fades as it grows
+          ctx.lineWidth = 6 * (1 - age * 0.4);
+          ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+          ctx.beginPath();
+          ctx.arc(rp.x, rp.y, radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+        while (ripples.length && now - ripples[0].t >= RIPPLE_LIFE) ripples.shift();
       }
 
       // 3) living head blob that eases toward the cursor (hover keeps it on)

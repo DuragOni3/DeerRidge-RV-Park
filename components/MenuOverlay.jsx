@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import PhotoPlaceholder from "./PhotoPlaceholder";
+import SocialLinks from "./SocialLinks";
 import { site } from "@/lib/site";
 
 const links = [
@@ -46,11 +47,11 @@ export default function MenuOverlay() {
             scrolled && !open ? "bg-forest-950/70 backdrop-blur" : "bg-transparent"
           }`}
         >
-          <div className="container-x relative flex h-20 items-center justify-center">
+          <div className="container-x relative flex h-20 items-center justify-start">
             <Link
               href="/"
               aria-label="DeerRidge RV Park home"
-              className="relative z-[95] md:-translate-x-40"
+              className="relative z-[95]"
             >
               <Logo light mark="#f7f9f5" size={48} />
             </Link>
@@ -165,9 +166,12 @@ export default function MenuOverlay() {
                 className="hidden aspect-[4/3] md:block"
               />
               <div className="grid gap-5 text-sm">
-                <div>
-                  <p className="eyebrow bracket-label">Find Us</p>
-                  <p className="mt-3 text-forest-100">{site.address}</p>
+                <div className="flex items-start justify-between gap-8">
+                  <div>
+                    <p className="eyebrow bracket-label">Find Us</p>
+                    <p className="mt-3 text-forest-100">{site.address}</p>
+                  </div>
+                  <SocialLinks className="mt-1 shrink-0" />
                 </div>
                 <div>
                   <p className="eyebrow bracket-label">Get in Touch</p>
